@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2199cf08a400f444ba18f378fabe3e89, type: 3}
+  m_Name: '[SFG] GPU Heightmap'
+  m_EditorClassIdentifier: 
+  heightAlgorithm: 1
+  frequency: 0.05
+  amplitude: 10
+  bias: 0
+  octaves: 8
+  lacunarity: 2
+  gain: 0.5
+  enabledFeatures: 14
+  warpFrequency: 0.25
+  warpStrenght: 3
+  terracingSteps: 5
+  cliffSharpness: 1.05
+  carvingFrequency: 0.05
+  carvingWidth: 1
+  carvingDepth: 0.25

@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2d51bb839c09e148b23614a9729f654, type: 3}
+  m_Name: Biomes
+  m_EditorClassIdentifier: 
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects:
+    - {fileID: 11400000, guid: 6c07c93d4081bf245be9303f205d8540, type: 2}
+    - {fileID: 11400000, guid: a8ecda652c99c1a419716a4e8f74a940, type: 2}
+    - {fileID: 11400000, guid: bfdbbeb0d8df584468956d644924c199, type: 2}
+    - {fileID: 11400000, guid: d24ec629ed5a8254cb90a246c77535c3, type: 2}
+    - {fileID: 11400000, guid: 1c9acb3feee7b0d4891a4c0e51a40b9b, type: 2}
+    - {fileID: 11400000, guid: 8e2744f9f0ebde24d94c189b918db17b, type: 2}
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: LUT
+      Entry: 7
+      Data: 0|Biome[,], Assembly-CSharp
+    - Name: 
+      Entry: 12
+      Data: 6
+    - Name: ranks
+      Entry: 1
+      Data: 2|3
+    - Name: 
+      Entry: 10
+      Data: 0
+    - Name: 
+      Entry: 10
+      Data: 1
+    - Name: 
+      Entry: 10
+      Data: 2
+    - Name: 
+      Entry: 10
+      Data: 3
+    - Name: 
+      Entry: 10
+      Data: 4
+    - Name: 
+      Entry: 10
+      Data: 5
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+  lookUpTableSize: {x: 2, y: 3}
+  lookUpTableResolution: {x: 1024, y: 1024}

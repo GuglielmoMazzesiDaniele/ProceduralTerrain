@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2199cf08a400f444ba18f378fabe3e89, type: 3}
+  m_Name: '[SFG] Heightmap'
+  m_EditorClassIdentifier: 
+  heightAlgorithm: 0
+  frequency: 0.1
+  amplitude: 10
+  bias: 0
+  octaves: 6
+  lacunarity: 2
+  gain: 0.3
+  enabledFeatures: 7
+  warpFrequency: 0.5
+  warpStrenght: 1.5
+  terracingSteps: 3
+  cliffSharpness: 1.15
+  carvingFrequency: 0.25
+  carvingWidth: 0.35
+  carvingDepth: 2

@@ -1,0 +1,199 @@
+#include "../Resources/Auxiliary.hlsl"
+#include "../Resources/Biome.hlsl"
+
+#define THREADS_PER_GROUP_1D 256
+#define THREADS_PER_GROUP_2D 16
+#define THREADS_PER_GROUP_3D 4
+
+// --- KERNELS ---
+
+#pragma kernel terrain_heightmap
+#pragma kernel generate_normalmap
+#pragma kernel procedural_scattering
+#pragma kernel scattering_frustum_culling
+
+// --- TEXTURES ---
+
+RWTexture2DArray<float> terrain_heightmaps;
+RWTexture2DArray<half3> normalmaps;
+RWTexture2DArray<float2> biomemaps;
+
+RWStructuredBuffer<uint> min_max_height;
+int slice_index;
+
+
+// --- CHUNKS ---
+
+float3 chunk_origin;
+float chunk_size;
+uint chunk_resolution;
+
+RWStructuredBuffer<float4x4> transforms;
+RWStructuredBuffer<float4x4> visible_transforms;
+RWStructuredBuffer<uint> visible_scatter_counter;
+uint scatter_amount;
+
+StructuredBuffer<float4> frustum_planes;
+float time;
+
+// --- KERNELS ---
+
+groupshared uint group_min;
+groupshared uint group_max;
+
+[numthreads(THREADS_PER_GROUP_2D, 1, THREADS_PER_GROUP_2D)]
+void terrain_heightmap(uint3 id : SV_DispatchThreadID, uint3 in_group_id : SV_GroupThreadID)
+{
+    if (in_group_id.x == 0 && in_group_id.z == 0)
+    {
+        group_min = 0xFFFFFFFF;
+        group_max = 0x00000000u;
+    }
+    GroupMemoryBarrierWithGroupSync();
+    
+    // If the thread is out of bound of the mesh, return
+    if (id.x <= chunk_resolution || id.z <= chunk_resolution)
+    {
+        // Computing the UV coordinates of the current texel
+        float2 uv = float2(id.x, id.z) / chunk_resolution;
+
+        // Computing the texel world position on the XZ axis
+        float2 world_pos = chunk_origin.xz + uv * chunk_size;
+
+        // Computing the height
+        float height = compute_height(world_pos);
+    
+        // Storing the height
+        terrain_heightmaps[uint3(id.x, id.z, slice_index)] = height;
+        
+        // Reinterpreting the float as uint so bitwise order == numeric order for non-negatives
+        uint height_uint = float_to_sortable_uint(height);
+
+        // Atomic comparison in the group shared memory
+        InterlockedMin(group_min, height_uint);
+        InterlockedMax(group_max, height_uint);
+    }
+
+    GroupMemoryBarrierWithGroupSync();
+    
+    // Atomically tracking the global min/max
+    if (in_group_id.x == 0 && in_group_id.z == 0)
+    {
+        InterlockedMin(min_max_height[0], group_min);
+        InterlockedMax(min_max_height[1], group_max);
+    }
+}
+
+[numthreads(THREADS_PER_GROUP_2D, 1, THREADS_PER_GROUP_2D)]
+void generate_normalmap(uint3 id : SV_DispatchThreadID)
+{
+    // If the thread is outside the resolution of the normalmap, return
+    if(id.x > chunk_resolution || id.z > chunk_resolution)
+        return;
+
+    // Auxiliary variable storing current texel coordinate
+    int2 texel_coords = int2(id.x, id.z);
+
+    // Initializing the offsets
+    static const int2 offsets[8] = {
+        int2(-1, -1), int2( 0, -1), int2( 1, -1),
+        int2(-1,  0),               int2( 1,  0),
+        int2(-1,  1), int2( 0,  1), int2( 1,  1),
+    };
+
+    // Helper lambda to sample with clamped coords
+    #define SAMPLE(i) terrain_heightmaps[uint3( \
+    clamp(texel_coords + offsets[i], int2(0,0), int2(chunk_resolution, chunk_resolution)), \
+    slice_index)] \
+
+    // Sampling the heightmap
+    float h00 = SAMPLE(0);
+    float h10 = SAMPLE(1);
+    float h20 = SAMPLE(2);
+    float h01 = SAMPLE(3);
+    float h21 = SAMPLE(4);
+    float h02 = SAMPLE(5);
+    float h12 = SAMPLE(6);
+    float h22 = SAMPLE(7);
+
+    // Removing the auxiliary macro
+    #undef SAMPLE
+
+    // Applying a Sobel operator
+    float d_x = h20 + 2 * h21 + h22 - (h00 + 2 * h01 + h02);
+    float d_z = h02 + 2 * h12 + h22 - (h00 + 2 * h10 + h20);
+
+    // Scaling the central difference to actual world size
+    d_x *= 0.5 / (chunk_size / chunk_resolution);
+    d_z *= 0.5 / (chunk_size / chunk_resolution);
+
+    // Normalizing
+    float3 normal = normalize(float3(-d_x, 1.0f, -d_z));
+
+    // Writing the result in the normal map
+    normalmaps[uint3(texel_coords, slice_index)] = normal;
+}
+
+[numthreads(THREADS_PER_GROUP_1D, 1, 1)]
+void procedural_scattering (uint3 id : SV_DispatchThreadID)
+{
+    // Out of bounds
+    if(id.x >= scatter_amount)
+        return;
+
+    // Pseudorandom UV coordinates
+    float2 uv = pseudo_uv(id.x);
+
+    // Computing the texel coordinates
+    int2 tex = int2(uv * (chunk_resolution + 1));
+
+    // Computing the texel world position on the XZ axis
+    float2 world_position = chunk_origin.xz + uv * chunk_size;
+
+    // Sampling the height and normal of the terrain
+    float height = compute_height(world_position);
+    float3 normal = normalmaps[uint3(tex, slice_index)];
+
+    // Building orthonormal basis using the normal of the terrain
+    float3 up = abs(normal.y < 0.99) ? float3(0,1,0) : float3(1,0,0);
+    float3 tangent = normalize(cross(normal, up));
+    float3 bitangent = normalize(cross(tangent, normal));
+
+    // Computing position and scale
+    float3 position = chunk_origin + float3(uv.x * chunk_size, height, uv.y * chunk_size);
+    float scale = 0.5f;
+
+    // Building the transformation matrix
+    float4x4 transform;
+    transform._m00_m01_m02_m03 = float4(tangent * scale, position.x);
+    transform._m10_m11_m12_m13 = float4(normal * scale, position.y);
+    transform._m20_m21_m22_m23 = float4(bitangent * scale, position.z);
+    transform._m30_m31_m32_m33 = float4(0, 0, 0, 1);
+
+    transforms[id.x] = transform;
+}
+
+[numthreads(THREADS_PER_GROUP_1D, 1, 1)]
+void scattering_frustum_culling (uint3 id : SV_DispatchThreadID)
+{
+    // Out of bounds
+    if (id.x >= scatter_amount)
+        return;
+
+    // Extrapolating the world position 
+    float4x4 transform = transforms[id.x];
+    float3 pos = transform._m03_m13_m23;
+
+    // Testing if the position is within the frustum
+    [unroll]
+    for (int p = 0; p < 6; p++)
+    {
+        float4 plane = frustum_planes[p];
+        if (dot(plane.xyz, pos) + plane.w < 0)
+            return;
+    }
+
+    // Appending to the visible matrices
+    uint visible_index = visible_scatter_counter.IncrementCounter();
+    visible_transforms[visible_index] = transform;
+}
