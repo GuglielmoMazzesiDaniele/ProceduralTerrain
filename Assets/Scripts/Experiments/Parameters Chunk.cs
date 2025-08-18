@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using Sirenix.OdinInspector;
 using Unity.Collections;
 using Unity.Jobs;
@@ -6,33 +6,39 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-[RequireComponent(typeof(MeshFilter))]
-[RequireComponent(typeof(MeshRenderer))]
-public class Chunk : MonoBehaviour
+public class ParametersChunk : AChunk
 {
-    [HideLabel] [InlineProperty]
+    [Title("Noise")] 
     public FractalBrownianMotion.Parameters parameters;
-    public Material material;
-    
-    [HideInInspector]
-    public int resolution;
-    [HideInInspector]
-    public int size;
-    
-    private MeshFilter _meshFilter;
-    private MeshRenderer _meshRenderer;
-    private Mesh _mesh;
-    
-    private int _verticesCount;
-    private int _indicesCount;
-    private bool _isGenerating;
-    
-    private void Start()
+
+    # region Unity's Callback Functions
+    private void OnValidate()
     {
-        // Caching 
-        _meshFilter = GetComponent<MeshFilter>();
-        _meshRenderer = GetComponent<MeshRenderer>();
+        OnValidateWrapper();
+    }
+    
+    # endregion
+    
+    protected override void OnStart()
+    {
+        // Running previous level initialization
+        base.OnStart();
         
+        // Generating the mesh
+        UpdateMesh();
+    }
+
+    protected override void OnValidateWrapper()
+    {
+        // Running previous level implementation
+        base.OnValidateWrapper();
+        
+        // Updating the mesh
+        UpdateMesh();
+    }
+
+    protected void UpdateMesh()
+    {
         // Computing the min and max height of the chunk
         var minMaxHeight = FractalBrownianMotion.ComputeHeightBounds(parameters);
         
@@ -41,30 +47,9 @@ public class Chunk : MonoBehaviour
         bounds.SetMinMax(new Vector3(0, minMaxHeight.x, 0), new Vector3(size, minMaxHeight.y, size));
         _mesh = new Mesh
         {
-            name = "Testing Mesh",
+            name = "Chunk Mesh",
             bounds = bounds
         };
-        
-        // Setting the mesh filter and renderer
-        _meshFilter.mesh = _mesh;
-        _meshRenderer.material = material;
-        
-        // Computing auxiliary variables
-        _verticesCount = (resolution + 1) * (resolution + 1);
-        _indicesCount = resolution * resolution * 6;
-    }
-
-    private void OnDrawGizmos()
-    {
-        Gizmos.DrawWireCube(_meshRenderer.bounds.center, _meshRenderer.bounds.size);
-    }
-
-    private void Update()
-    {
-        // Verifying if a generation is already happening
-        if (_isGenerating)
-            return;
-        _isGenerating = true;
         
         // Allocating the height array
         var heights = new NativeArray<float>(_verticesCount, Allocator.TempJob);
@@ -74,7 +59,7 @@ public class Chunk : MonoBehaviour
         {
             resolution = resolution,
             size = size,
-            origin = new float2(transform.position.x + Time.time, transform.position.z + Time.time),
+            origin = new float2(transform.position.x, transform.position.z),
             parameters = parameters,
             heights = heights
         };
@@ -109,8 +94,8 @@ public class Chunk : MonoBehaviour
         // Starting the coroutine that waits for the ending of the job
         StartCoroutine(CompleteMeshJob(meshJobHandle, meshDataArray, heights));
     }
-
-    private IEnumerator CompleteMeshJob(JobHandle jobHandle, 
+    
+    protected IEnumerator CompleteMeshJob(JobHandle jobHandle,
         Mesh.MeshDataArray meshDataArray, NativeArray<float> heights)
     {
         // Yielding until job is completed
@@ -134,9 +119,6 @@ public class Chunk : MonoBehaviour
         
         // Assigning to filter and renderer
         _meshFilter.mesh = _mesh;
-        
-        // Signaling that generating has been completed
-        _isGenerating = false;
         
         // Disposing of the native array
         heights.Dispose();

@@ -36,7 +36,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0bff034751872434a9354de51dda9588, type: 3}
   m_Name: Fog
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   settings:
     fogDensity: 1
     heavyFogDistance: 8000
