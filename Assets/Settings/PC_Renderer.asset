@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad76f1d1c21ef6347b89a847fd7f7913, type: 3}
   m_Name: RenderFeatureWater
   m_EditorClassIdentifier: 
-  m_Active: 0
+  m_Active: 1
   settings:
     height: -60
     shallowWater: {r: 0.21791562, g: 0.5209524, b: 0.5566038, a: 1}
@@ -36,7 +36,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0bff034751872434a9354de51dda9588, type: 3}
   m_Name: Fog
   m_EditorClassIdentifier: 
-  m_Active: 0
+  m_Active: 1
   settings:
     fogDensity: 1
     heavyFogDistance: 8000
