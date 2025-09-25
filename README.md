@@ -6,7 +6,7 @@ Below is a video showcase of the implementation. Click the image to be redirecte
 
 [![Watch the video](https://github.com/GuglielmoMazzesiDaniele/ProceduralTerrain/blob/main/Jam%20Submission%20Photos/Water.png)](https://www.youtube.com/watch?v=utK_U0SPAtk)
 
-## Featues
+## Features
 
 As of **September 24, 2025**, the generator includes the following features:
 
